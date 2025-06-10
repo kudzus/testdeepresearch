@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="stylesheet" href="/static/exolve/exolve-m.css">
+  <script src="/static/exolve/exolve-m.js"></script>
+
+  <!-- Socket.IO -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.0/socket.io.min.js"></script>
+  <script>
+  /* 1 ️⃣  Clear every Exolve save-slot */
+  Object.keys(localStorage).forEach(k => {
+    if (k.startsWith('xlvstate:') || k.startsWith('exolve-')) {
+      localStorage.removeItem(k);
+    }
+  });
+
+  /* 2 ️⃣  Stop Exolve from writing (or reading) again */
+  if (window.Exolve) {
+    Exolve.prototype.saveGameState    = function () {};
+    Exolve.prototype.restoreGameState = function () {};
+  }
+</script>
+  <script>
+    const socket = io("http://localhost:5006s");
+    socket.on("connect",      ()  => console.log("✅ socket id =", socket.id));
+    socket.on("connect_error", err => console.error("❌ socket error", err));
+  </script>
+
+  <title>Themawoord Crossword</title>
+</head>
+<body>
+
+<script>
+/* ---------- helpers to build a snapshot -------------------------- */
+function buildAcrossMap(puz) {
+  const across = {};
+  for (let r = 0; r < puz.gridHeight; r++) {
+    let label = null;
+    for (let c = 0; c < puz.gridWidth; c++) {
+      const cell = puz.grid[r][c];
+      if (cell.isLight && (c === 0 || !puz.grid[r][c-1].isLight)) {
+        label = cell.acrossClueLabel;
+        across[label] = '';
+      }
+      if (cell.isLight && label) {
+        across[label] += (cell.currLetter || '.');
+      }
+    }
+  }
+  return across;
+}
+
+function buildDownMap(puz) {
+  const down = {};
+  for (let c = 0; c < puz.gridWidth; c++) {
+    let label = null;
+    for (let r = 0; r < puz.gridHeight; r++) {
+      const cell = puz.grid[r][c];
+      if (cell.isLight && (r === 0 || !puz.grid[r-1][c].isLight)) {
+        label = cell.downClueLabel;
+        down[label] = '';
+      }
+      if (cell.isLight && label) {
+        down[label] += (cell.currLetter || '.');
+      }
+    }
+  }
+  return down;
+}
+
+function emitGameState(puz) {
+  const inGrid =
+    puz.currRow >= 0 && puz.currRow < puz.gridHeight &&
+    puz.currCol >= 0 && puz.currCol < puz.gridWidth;
+
+  const clueLabel = inGrid
+      ? (puz.currDir === 'A'
+          ? puz.grid[puz.currRow][puz.currCol].acrossClueLabel
+          : puz.grid[puz.currRow][puz.currCol].downClueLabel)
+      : null;
+
+  const payload = {
+    across: buildAcrossMap(puz),
+    down:   buildDownMap(puz),
+    current_cell: { row: puz.currRow, col: puz.currCol, dir: puz.currDir },
+    clue_context: { direction: puz.currDir, clueLabel }
+  };
+
+  console.log("[BROWSER] sending game_state", performance.now().toFixed(1));
+  socket.emit("game_state", payload);
+}
+
+/* ---------- Exolve hook ----------------------------------------- */
+function customizeExolve(puz) {
+  /* respond only when Python explicitly asks */
+  socket.on("request_state", () => {
+    console.log("[BROWSER] request_state received", performance.now().toFixed(1));
+    emitGameState(puz);
+  });
+}
+</script>
+
+</exolve-grid>
+<script>
+  createExolve(`
+  exolve-begin
+  exolve-title: Mystery Country Crossword
+  exolve-width: 15
+  exolve-height: 15
+
+  # Grid (letters are pre-filled, “.” = black square)
+  exolve-grid:
+CUBA..........U
+A.E.BRAZIL.J..K
+MALTA.....QATAR
+B.G.H..G.S.P..A
+O.I.A.SENEGAL.I
+D.U.M..R.R.N..N
+I.M.A..M.B....E
+A...SOMALIA.V..
+.....M.N.A..I.T
+.HUNGARY...PERU
+...O.N...K..T.R
+...R...SWEDEN.K
+...W.....N..A.E
+..PARAGUAY..M.Y
+...Y.....A.....
+
+    
+  exolve-across:
+1 CUBA
+4 BRAZIL
+6 MALTA
+7 QATAR
+10 SENEGAL
+11 SOMALIA
+15 HUNGARY
+17 PERU
+19 SWEDEN
+20 PARAGUAY
+
+  exolve-down:
+1 CAMBODIA
+2 BELGIUM
+3 UKRAINE
+4 BAHAMAS
+5 JAPAN
+8 GERMANY
+9 SERBIA
+12 OMAN
+13 VIETNAM
+14 TURKEY
+16 NORWAY
+18 KENYA
+
+  exolve-end
+  `);
+</script>
+</body>
+</html>
+
+<!--
+22 countries
+BAHAMAS, BELGIUM, BRAZIL, CAMBODIA, CUBA, GERMANY, HUNGARY, JAPAN, MALTA, NORWAY, OMAN, PARAGUAY, PERU, QATAR, SENEGAL, SERBIA, SOMALIA, SWEDEN, TURKEY, UKRAINE, VIETNAM
+-->

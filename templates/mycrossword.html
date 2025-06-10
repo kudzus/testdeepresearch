@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <link rel="stylesheet"
+        href="https://viresh-ratnakar.github.io/exolve-m.css?v1.61"/>
+  <script src="https://viresh-ratnakar.github.io/exolve-m.js?v1.61"></script>
+
+  <!-- Socket.IO -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.0/socket.io.min.js"></script>
+  <script>
+    const socket = io("http://localhost:5006");
+    socket.on("connect",      ()  => console.log("✅ socket id =", socket.id));
+    socket.on("connect_error", err => console.error("❌ socket error", err));
+  </script>
+
+  <title>Themawoord Crossword</title>
+</head>
+<body>
+
+<script>
+/* ---------- helpers to build a snapshot -------------------------- */
+function buildAcrossMap(puz) {
+  const across = {};
+  for (let r = 0; r < puz.gridHeight; r++) {
+    let label = null;
+    for (let c = 0; c < puz.gridWidth; c++) {
+      const cell = puz.grid[r][c];
+      if (cell.isLight && (c === 0 || !puz.grid[r][c-1].isLight)) {
+        label = cell.acrossClueLabel;
+        across[label] = '';
+      }
+      if (cell.isLight && label) {
+        across[label] += (cell.currLetter || '.');
+      }
+    }
+  }
+  return across;
+}
+
+function buildDownMap(puz) {
+  const down = {};
+  for (let c = 0; c < puz.gridWidth; c++) {
+    let label = null;
+    for (let r = 0; r < puz.gridHeight; r++) {
+      const cell = puz.grid[r][c];
+      if (cell.isLight && (r === 0 || !puz.grid[r-1][c].isLight)) {
+        label = cell.downClueLabel;
+        down[label] = '';
+      }
+      if (cell.isLight && label) {
+        down[label] += (cell.currLetter || '.');
+      }
+    }
+  }
+  return down;
+}
+
+function emitGameState(puz) {
+  const inGrid =
+    puz.currRow >= 0 && puz.currRow < puz.gridHeight &&
+    puz.currCol >= 0 && puz.currCol < puz.gridWidth;
+
+  const clueLabel = inGrid
+      ? (puz.currDir === 'A'
+          ? puz.grid[puz.currRow][puz.currCol].acrossClueLabel
+          : puz.grid[puz.currRow][puz.currCol].downClueLabel)
+      : null;
+
+  const payload = {
+    across: buildAcrossMap(puz),
+    down:   buildDownMap(puz),
+    current_cell: { row: puz.currRow, col: puz.currCol, dir: puz.currDir },
+    clue_context: { direction: puz.currDir, clueLabel }
+  };
+
+  console.log("[BROWSER] sending game_state", performance.now().toFixed(1));
+  socket.emit("game_state", payload);
+}
+
+/* ---------- Exolve hook ----------------------------------------- */
+function customizeExolve(puz) {
+  /* respond only when Python explicitly asks */
+  socket.on("request_state", () => {
+    console.log("[BROWSER] request_state received", performance.now().toFixed(1));
+    emitGameState(puz);
+  });
+}
+</script>
+
+</exolve-grid>
+<script>
+  createExolve(`
+  exolve-begin
+  exolve-title: Mystery Country Crossword
+  exolve-width: 15
+  exolve-height: 15
+
+  # Grid (letters are pre-filled, “.” = black square)
+  exolve-grid:
+..........F....
+..AUSTRIA.R...M
+....P....PANAMA
+TAIWAN....N...L
+....I...I.C.K.A
+.CHINA.GREECE.Y
+...R....A...N.S
+..VATICANCITY.I
+.I.Q..A..Z..A.A
+.S....N..E.....
+.RUSSIA..CHILE.
+.A.Y..D..H.T.G.
+.E.R.HAITI.A.Y.
+.L.I.....A.L.P.
+..JAMAICA..Y.T.
+
+    
+  exolve-across:
+    1 Country that Wales is part of
+    6 Where the ruins of Babylon can be found
+    8 Vanua Levu is its second largest island
+    11 Located west of Botswana
+    13 North of the above
+    14 Where Timbuktu is located
+    15 One of the Nordic countries
+    16 Smallest island country
+    18 Its capital is Muscat
+    22 Portugal's neighbour
+    23 Broke away from Ethiopia in 1993
+    24 North of the U.S.
+
+  exolve-down:
+    1 Home to Burj Khalifa
+    2 Formerly called Persia
+    3 Caribbean country: ______ Republic
+    4 Has Hindi as an official language
+    5 Found in the Horn of Africa
+    7 2022 World Cup host
+    9 Its cities include Milan and Venice
+    10 Basseterre is its capital
+    12 Caribbean country
+    17 Largest country in Africa
+    19 Also known as Burma
+    20 Sandwiched between Togo and Nigeria
+    21 Borders Germany and Poland
+    22 Formerly known as Western _____ to distinguish it from the U.S. territory
+  exolve-end
+  `);
+</script>
+</body>
+</html>
+
+<!--
+  # Grid (letters are pre-filled, “.” = black square)
+  exolve-grid:
+    U N I T E D K I N G D O M . .
+    N . R . . O . N . . J . . . .
+    I R A Q . M . D . F I J I . K
+    T . N A M I B I A . B . T . I
+    E . . T . N . A N G O L A . T
+    D . M A L I . . D . U . L . T
+    E . . R . C . . B . T . Y . S
+    M . . . . A . . A . I . . . A
+    I C E . . N A U R U . O M A N
+    R . . . B . L . B . . . Y . D
+    A . C . E . G . U . S P A I N
+    T . Z . N . E . D . A . N . E
+    E . E R I T R E A . M . M . V
+    S . C . N . I . . . O . A . I
+    . . H . . C A N A D A . R . S
+    . . . . . . . . . . . . . . .
+
+    
+  exolve-across:
+    1 Country that Wales is part of
+    6 Where the ruins of Babylon can be found
+    8 Vanua Levu is its second largest island
+    11 Located west of Botswana
+    13 North of the above
+    14 Where Timbuktu is located
+    15 One of the Nordic countries
+    16 Smallest island country
+    18 Its capital is Muscat
+    22 Portugal's neighbour
+    23 Broke away from Ethiopia in 1993
+    24 North of the U.S.
+
+  exolve-down:
+    1 Home to Burj Khalifa
+    2 Formerly called Persia
+    3 Caribbean country: ______ Republic
+    4 Has Hindi as an official language
+    5 Found in the Horn of Africa
+    7 2022 World Cup host
+    9 Its cities include Milan and Venice
+    10 Basseterre is its capital
+    12 Caribbean country
+    17 Largest country in Africa
+    19 Also known as Burma
+    20 Sandwiched between Togo and Nigeria
+    21 Borders Germany and Poland
+    22 Formerly known as Western _____ to distinguish it from the U.S. territory
+
+    U . B O L I V I A . C H I L E
+    N . R . . N . . . . . O . . G
+    I R A N . D . P O L A N D . Y
+    T . Z . . I . A . . . D . . P
+    E . I S R A E L . H . U . . T
+    D . L . W . . A . A . R . M .
+    K . . . A . S U R I N A M E .
+    I . Z . N . I . . T . S . X .
+    N . I N D O N E S I A . . I .
+    G . M . A . G . A . . F . C .
+    D . B . . S A N M A R I N O . 
+    O M A N . . P . O . . J . . P
+    M . B . . M O Z A M B I Q U E
+    . . W . . . R . . . . . . . R
+    C Z E C H R E P U B L I C . U
+
+exolve-across:
+ 2 Home to the Salar de Uyuni salt flats
+ 4 Contains the arid Atacama Desert along the Pacific coast
+ 7 Its capital city is Tehran
+ 8 Country whose currency is the złoty
+ 9 Eastern-Mediterranean nation abutting the Dead Sea
+ 13 Smallest sovereign state on mainland South America
+ 15 Archipelagic nation spread across two continents and three time zones
+ 18 Land-locked microstate completely surrounded by Italy
+ 19 Arabian sultanate with a coastline on the Gulf of Oman
+ 21 Southeastern African nation crossed by the Zambezi River
+ 22 Central-European country once half of Czechoslovakia
+
+exolve-down:
+ 1 East-African nation dubbed the “Pearl of Africa” by Churchill
+ 3 Tiny theocratic state entirely within Rome
+ 5 Central-American republic with the Bay Islands offshore
+ 6 North-African nation famed for its ancient hieroglyphs
+ 10 Land-locked Southeast-Asian state on the Mekong River
+ 11 Danube-bisected country whose capital was once two cities, Buda and Pest
+ 12 Southeast-Asian nation formerly known as Burma
+ 14 Southern-African country sharing Victoria Falls with Zimbabwe
+ 16 Polynesian nation comprising the islands of Upolu and Savai'i
+ 17 Western-European country celebrated for the Louvre and the Loire
+ 20 Andean nation renowned for Machu Picchu
+-->
+
+<!-- --------------- create the crossword --------------------------- -->
+ <!--
+
+<script>
+  createExolve(`
+  exolve-begin
+  exolve-title: Fun Crossword
+  exolve-width: 15
+  exolve-height: 15
+
+  # Grid (letters are pre-filled, “.” = black square)
+exolve-grid:
+  B A E S . T A R . A B L A Z E
+  R U D E . E M O . P L A N O N
+  A N G R Y M O B . P U N T E D
+  S T A G E P R E S E N C E . .
+  . . . R E A L E S T A T E . . .
+  G A T E . A L L S T A R . . .
+  . . . S H U N S . C A R E Y .
+  M O E T . P O R E D . T R I M
+  U P S . S H R E D . S E E D Y
+  G E T I N O N . T H A W . . .
+  . . . . M O T E L R O O M S .
+  . . S H O O T Y O U R S H O T
+  W H O O P I . D U C T T A P E
+  C A L M E D . I S H . E D E N
+  S T E E D S . A T E . R E N T
+
+  exolve-across:
+  1 Sweethearts, in modern parlance
+  5 2022 film in which Cate Blanchett plays a world-renowned conductor
+  8 In flames
+  14 Like taking up two parking spots or cutting in line
+  15 Genre for Fall Out Boy
+  16 Intend to
+  17 Crowd stereotypically seen with pitchforks and torches
+  19 Kicked, as a football
+  20 Intangible asset for a Broadway actor
+  22 Business where people deal with lots of lots?
+  23 Golden — Bridge
+  24 “Hey now, you’re an — / Get your game on, go play” (Smash Mouth lyrics)
+  28 Treats like a pariah
+  30 Mariah who holds the record for most cumulative weeks atop the Billboard Hot 100
+  32 Insurance option that generally doesn’t cover out-of-network care: Abbr.
+  33 — & Chandon (champagne house)
+  34 Carefully studied, with “over”
+  35 Quick job at the barbershop
+  36 Delivery co. that’s the subject of the book “Big Brown”
+  37 Tear it up on the guitar
+  38 Disreputable
+  39 Become a part of, as a scheme
+  41 Unfreeze
+  42 Accommodations for road trippers
+  45 “Might as well try!”
+  48 “The Color Purple” actress Goldberg
+  50 Silvery adhesive strip
+  51 Placated
+  52 “… or something like that”
+  53 Biblical garden in which Adam named the animals
+  54 Jousters’ horses
+  55 Consumed
+  56 “Don’t let them live in your head —-free”
+
+exolve-down:
+  1 Lingerie tops
+  2 Viv, to Will, on “The Fresh Prince of Bel-Air”
+  3 American poet who wrote “Only a Dad” and “It Couldn’t Be Done”
+  4 Military rank above corporal
+  5 Place of worship
+  6 Italian for “love”
+  7 Judges’ garments
+  8 Contested the results of a trial
+  9 In a not so tactful manner
+ 10 Jousters’ weapons
+ 11 Poker player’s buy-in
+ 12 Kravitz who played Catwoman in “The Batman” and “The Lego Batman Movie”
+ 13 Terminus
+ 18 “Sailing to Byzantium” poet W. B. —
+ 21 Looked intently
+ 25 Slyly sniped, in slang
+ 26 In the thick of
+ 27 “— and Michele’s High School Reunion”
+ 28 Smarmy
+ 29 Optimist’s sentiment
+ 30 Smaller relative of a trumpet
+ 31 Nirvana’s “Come as You —”
+ 34 Cards presented at T.S.A. checkpoints
+ 35 Trucker in a union
+ 37 Looked through someone’s phone, say
+ 38 — king (charismatic five-foot-four-inch guy, maybe)
+ 40 Cry upon entering one’s apartment
+ 41 “I don’t have a comeback for that”
+ 43 Youngest Bennet sister in “Pride and Prejudice”
+ 44 Forcefully awaken
+ 45 Foot-massage target
+ 46 Word on one side of a shop-window sign
+ 47 Camper’s shelter
+ 48 Toilets, to Europeans: Abbr.
+ 49 Trilby or fedora, e.g.
+
+exolve-end
+  `);
+  </script>
+  </body>
+  </html>
+  -->

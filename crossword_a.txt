@@ -1,0 +1,51 @@
+  exolve-across:
+  2 Country famous for Mozart and the Alps
+  5 Country whose canal connects the Atlantic and Pacific oceans
+  6 Island whose capital is Taipei
+  9 Eastern land known for a monumental divide
+  11 Where Plato and Socrates once strolled
+  12 Smallest country in the world, home to St. Peter’s Basilica
+  16 Country that stretches from Europe to Asia 
+  18 South American country named like a pepper, with Santiago as its capital 
+  21 Caribbean country hit by a major earthquake in 2010
+  22 Home of Usain Bolt and reggae music
+
+  exolve-down:
+  1 Country whose motto is Liberté, Égalité, Fraternité
+  3 European country whose capital is Madrid, famous for paella
+  4 Country whose capital is Kuala Lumpur
+  7 Country whose capital is Tehran and was once called Persia
+  8 East African country whose capital is Nairobi
+  10 Country whose capital is Baghdad, located between the Tigris and Euphrates
+  13 Country north of the United States known for maple syrup
+  14 Central European country whose capital is Prague, formerly part of Czechoslovakia
+  15 Middle Eastern country founded in 1948, capital Jerusalem
+  17 Country whose ancient city of Damascus is one of the oldest continually inhabited
+  19 European country shaped like a boot, capital Rome
+  20 African country whose ancient monuments include the Pyramids of Giza
+
+exolve-across:
+2 AUSTRIA
+5 PANAMA
+6 TAIWAN
+9 CHINA
+11 GREECE
+12 VATICANCITY
+16 RUSSIA
+18 CHILE
+21 HAITI
+22 JAMAICA
+
+exolve-down:
+1 FRANCE
+3 SPAIN
+4 MALAYSIA
+7 IRAN
+8 KENYA
+10 IRAQ
+13 CANADA
+14 CZECHIA
+15 ISRAEL
+17 SYRIA
+19 ITALY
+20 EGYPT
